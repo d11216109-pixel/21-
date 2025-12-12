@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blackjack (21) - Casino Betting</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#121a2b;
+      --panel2:#0f172a;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#22c55e;
+      --danger:#ef4444;
+      --warn:#f59e0b;
+      --btn:#1f2a44;
+      --btn2:#22304d;
+      --border:rgba(255,255,255,.12);
+      --shadow: 0 10px 25px rgba(0,0,0,.35);
+      --radius:14px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 30% 0%, #132048 0%, var(--bg) 55%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .app{
+      width:min(980px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      padding:18px 18px 10px;
+      background: rgba(255,255,255,.03);
+      border-bottom:1px solid var(--border);
+    }
+    header .title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    header h1{
+      margin:0;
+      font-size:18px;
+      letter-spacing:.3px;
+    }
+    header .sub{
+      margin:0;
+      font-size:13px;
+      color: var(--muted);
+      line-height:1.35;
+    }
+    .casino{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:10px;
+      justify-content:flex-end;
+    }
+    .pill{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      padding:10px 12px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.20);
+      border:1px solid var(--border);
+      min-width:150px;
+    }
+    .pill .label{font-size:11px;color:var(--muted)}
+    .pill .value{font-weight:700; letter-spacing:.2px}
+
+    .bet-controls{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.20);
+    }
+    .bet-controls .label{font-size:11px;color:var(--muted); margin-right:8px}
+    .bet-controls .bet-value{font-weight:800; min-width:70px; text-align:center}
+
+    button{
+      appearance:none;
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, var(--btn2), var(--btn));
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:650;
+      letter-spacing:.2px;
+      transition:transform .05s ease, opacity .12s ease, background .12s ease;
+      user-select:none;
+    }
+    button:active{transform:translateY(1px)}
+    button:hover{background: linear-gradient(180deg, #27365b, #1f2a44)}
+    button:disabled{opacity:.45; cursor:not-allowed}
+
+    .btn-small{padding:8px 10px; border-radius:10px}
+    .btn-reset{background: linear-gradient(180deg, #3b2b12, #2b1f12); border-color: rgba(245,158,11,.45)}
+    .btn-reset:hover{background: linear-gradient(180deg, #4a3514, #2f2314)}
+
+    main{padding:18px}
+
+    .table{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+    }
+
+    .row{
+      padding:14px;
+      border-radius: var(--radius);
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.18);
+    }
+
+    .row h2{
+      margin:0 0 10px;
+      font-size:14px;
+      color: var(--muted);
+      font-weight:700;
+      letter-spacing:.25px;
+      text-transform:uppercase;
+    }
+
+    .hand{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      min-height:56px;
+    }
+    .card{
+      width:44px;
+      height:58px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.16);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.01));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      box-shadow: 0 8px 18px rgba(0,0,0,.25);
+    }
+    .card.red{color:#fb7185}
+
+    .info{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-top:10px;
+      color: var(--muted);
+      font-size:13px;
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:14px;
+      padding-top:14px;
+      border-top:1px solid var(--border);
+    }
+
+    .status{
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      font-weight:700;
+      letter-spacing:.15px;
+    }
+    .status.muted{color: var(--muted); font-weight:650}
+    .status.win{border-color: rgba(34,197,94,.45); color:#bbf7d0}
+    .status.lose{border-color: rgba(239,68,68,.45); color:#fecaca}
+    .status.push{border-color: rgba(148,163,184,.35); color:#e2e8f0}
+
+    .footer-note{
+      margin-top:12px;
+      color: var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    @media (max-width:720px){
+      header{align-items:stretch; flex-direction:column}
+      .casino{justify-content:flex-start}
+      .pill{min-width:unset; flex:1}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>Blackjack (21)</h1>
+        <p class="sub">Now with a basic casino betting system. Set your bet, deal a new round, then hit/stand. Bet controls lock during a round.</p>
+      </div>
+
+      <div class="casino" aria-label="Casino betting controls">
+        <div class="pill" aria-label="Bankroll">
+          <div class="label">Bankroll</div>
+          <div class="value" id="bankrollDisplay">$1000</div>
+        </div>
+
+        <div class="bet-controls" aria-label="Bet controls">
+          <div class="label">Bet</div>
+          <button class="btn-small" id="betMinus" type="button" aria-label="Decrease bet">−</button>
+          <div class="bet-value" id="betDisplay">$10</div>
+          <button class="btn-small" id="betPlus" type="button" aria-label="Increase bet">+</button>
+        </div>
+
+        <button class="btn-reset" id="resetBankroll" type="button">Reset funds</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="table">
+        <div class="row">
+          <h2>Dealer</h2>
+          <div class="hand" id="dealerHand"></div>
+          <div class="info">
+            <div>Score: <span id="dealerScore">0</span></div>
+            <div id="dealerNote" class="status muted">Waiting for deal…</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <h2>Player</h2>
+          <div class="hand" id="playerHand"></div>
+          <div class="info">
+            <div>Score: <span id="playerScore">0</span></div>
+            <div id="playerNote" class="status muted">Set your bet, then Deal.</div>
+          </div>
+
+          <div class="controls">
+            <button id="newGame" type="button">Deal / New Round</button>
+            <button id="hit" type="button" disabled>Hit</button>
+            <button id="stand" type="button" disabled>Stand</button>
+          </div>
+
+          <div class="footer-note">
+            Defaults: starting bankroll <b>$1000</b>, min bet <b>$10</b>, max bet <b>$200</b>. Payout: win pays <b>1:1</b>, push returns bet, lose loses bet.
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // -------------------------------
+    // Blackjack gameplay (kept basic)
+    // -------------------------------
+
+    const suits = ['♠','♥','♦','♣'];
+    const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+    function buildDeck(){
+      const deck=[];
+      for (const s of suits){
+        for (const r of ranks){
+          deck.push({ rank:r, suit:s });
+        }
+      }
+      return deck;
+    }
+
+    function shuffle(arr){
+      for (let i=arr.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function cardValue(rank){
+      if (rank === 'A') return 11;
+      if (['K','Q','J'].includes(rank)) return 10;
+      return Number(rank);
+    }
+
+    function handScore(hand){
+      let total=0;
+      let aces=0;
+      for (const c of hand){
+        total += cardValue(c.rank);
+        if (c.rank==='A') aces++;
+      }
+      // adjust aces
+      while (total>21 && aces>0){
+        total -= 10;
+        aces--;
+      }
+      return total;
+    }
+
+    function renderHand(el, hand, hideFirst=false){
+      el.innerHTML='';
+      hand.forEach((c, idx)=>{
+        const div=document.createElement('div');
+        div.className='card';
+        if (c.suit==='♥' || c.suit==='♦') div.classList.add('red');
+
+        if (hideFirst && idx===0){
+          div.textContent='🂠';
+          div.classList.remove('red');
+        } else {
+          div.textContent = `${c.rank}${c.suit}`;
+        }
+        el.appendChild(div);
+      });
+    }
+
+    // -------------------------------
+    // Casino betting system
+    // -------------------------------
+    const DEFAULTS = {
+      startingBankroll: 1000,
+      minBet: 10,
+      maxBet: 200,
+    };
+
+    const STORAGE_KEYS = {
+      bankroll: 'bj_bankroll_v1',
+      bet: 'bj_bet_v1'
+    };
+
+    function formatMoney(n){
+      return `$${n}`;
+    }
+
+    function loadNumber(key, fallback){
+      const raw = localStorage.getItem(key);
+      const n = raw === null ? NaN : Number(raw);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    let bankroll = loadNumber(STORAGE_KEYS.bankroll, DEFAULTS.startingBankroll);
+    let bet = loadNumber(STORAGE_KEYS.bet, DEFAULTS.minBet);
+
+    bet = Math.max(DEFAULTS.minBet, Math.min(DEFAULTS.maxBet, Math.floor(bet)));
+
+    // Round state
+    let deck = [];
+    let playerHand = [];
+    let dealerHand = [];
+    let inRound = false;
+    let betLocked = false;
+    let roundBet = 0; // wagered amount for current round
+    let dealerHoleHidden = true;
+
+    // DOM
+    const dealerHandEl = document.getElementById('dealerHand');
+    const playerHandEl = document.getElementById('playerHand');
+    const dealerScoreEl = document.getElementById('dealerScore');
+    const playerScoreEl = document.getElementById('playerScore');
+    const dealerNoteEl = document.getElementById('dealerNote');
+    const playerNoteEl = document.getElementById('playerNote');
+
+    const newGameBtn = document.getElementById('newGame');
+    const hitBtn = document.getElementById('hit');
+    const standBtn = document.getElementById('stand');
+
+    const bankrollDisplay = document.getElementById('bankrollDisplay');
+    const betDisplay = document.getElementById('betDisplay');
+    const betMinusBtn = document.getElementById('betMinus');
+    const betPlusBtn = document.getElementById('betPlus');
+    const resetBankrollBtn = document.getElementById('resetBankroll');
+
+    function saveBankroll(){
+      localStorage.setItem(STORAGE_KEYS.bankroll, String(bankroll));
+    }
+    function saveBet(){
+      localStorage.setItem(STORAGE_KEYS.bet, String(bet));
+    }
+
+    function setStatus(el, text, kind='muted'){
+      el.textContent = text;
+      el.className = `status ${kind}`;
+    }
+
+    function setBetLocked(locked){
+      betLocked = locked;
+      betMinusBtn.disabled = locked;
+      betPlusBtn.disabled = locked;
+      resetBankrollBtn.disabled = locked;
+    }
+
+    function clampBetToRules(){
+      bet = Math.max(DEFAULTS.minBet, Math.min(DEFAULTS.maxBet, bet));
+      bet = Math.floor(bet);
+      if (bankroll <= 0) {
+        // Still allow setting bet (display), but Deal will be blocked.
+        // Keep within min/max.
+      }
+      updateCasinoUI();
+      saveBet();
+    }
+
+    function updateCasinoUI(){
+      bankrollDisplay.textContent = formatMoney(bankroll);
+      betDisplay.textContent = formatMoney(bet);
+
+      // Only allow adjusting within min/max; if locked, all disabled anyway.
+      betMinusBtn.disabled = betLocked || bet <= DEFAULTS.minBet;
+      betPlusBtn.disabled = betLocked || bet >= DEFAULTS.maxBet;
+      resetBankrollBtn.disabled = betLocked;
+
+      // Deal button should be disabled if in round is false? We keep it enabled but prevent dealing if can't afford.
+      if (!inRound) {
+        if (bankroll < bet) {
+          newGameBtn.disabled = false;
+          newGameBtn.textContent = 'Deal / New Round';
+        } else {
+          newGameBtn.disabled = false;
+          newGameBtn.textContent = 'Deal / New Round';
+        }
+      }
+    }
+
+    function resetFunds(){
+      bankroll = DEFAULTS.startingBankroll;
+      bet = DEFAULTS.minBet;
+      saveBankroll();
+      saveBet();
+      updateCasinoUI();
+      setStatus(playerNoteEl, 'Funds reset. Set your bet, then Deal.', 'muted');
+    }
+
+    // -------------------------------
+    // Round flow and settlement
+    // -------------------------------
+
+    function draw(){
+      if (deck.length === 0) deck = shuffle(buildDeck());
+      return deck.pop();
+    }
+
+    function updateTableUI(){
+      renderHand(playerHandEl, playerHand, false);
+      renderHand(dealerHandEl, dealerHand, dealerHoleHidden);
+
+      const pScore = handScore(playerHand);
+      const dScore = dealerHoleHidden ? (dealerHand.length ? cardValue(dealerHand[1].rank) : 0) : handScore(dealerHand);
+
+      playerScoreEl.textContent = String(pScore);
+      dealerScoreEl.textContent = String(dScore);
+    }
+
+    function lockGameplayButtons(){
+      hitBtn.disabled = true;
+      standBtn.disabled = true;
+    }
+
+    function unlockGameplayButtons(){
+      hitBtn.disabled = false;
+      standBtn.disabled = false;
+    }
+
+    function startNewRound(){
+      if (betLocked || inRound) return;
+
+      // Ensure player can afford bet
+      if (bankroll < bet){
+        setStatus(playerNoteEl, `Not enough bankroll to bet ${formatMoney(bet)}. Reduce bet or reset funds.`, 'lose');
+        return;
+      }
+
+      // Deduct bet when a new round starts
+      bankroll -= bet;
+      roundBet = bet;
+      saveBankroll();
+
+      inRound = true;
+      setBetLocked(true);
+
+      // Setup deck/hand
+      deck = deck.length ? deck : shuffle(buildDeck());
+      playerHand = [draw(), draw()];
+      dealerHand = [draw(), draw()];
+      dealerHoleHidden = true;
+
+      unlockGameplayButtons();
+
+      setStatus(dealerNoteEl, 'Dealer showing one card.', 'muted');
+      setStatus(playerNoteEl, `Round started. Bet: ${formatMoney(roundBet)}.`, 'muted');
+
+      updateTableUI();
+
+      // Check immediate outcomes (blackjack)
+      const p = handScore(playerHand);
+      const d = handScore(dealerHand);
+      if (p === 21 || d === 21){
+        endRoundImmediateBlackjack(p, d);
+      }
+
+      updateCasinoUI();
+    }
+
+    function endRoundImmediateBlackjack(p, d){
+      dealerHoleHidden = false;
+      updateTableUI();
+
+      if (p === 21 && d === 21){
+        settle('push');
+        return;
+      }
+      if (p === 21){
+        // For "basic" betting: win pays 1:1 (no 3:2 blackjack bonus requested)
+        settle('win');
+        return;
+      }
+      settle('lose');
+    }
+
+    function dealerPlay(){
+      dealerHoleHidden = false;
+
+      while (handScore(dealerHand) < 17){
+        dealerHand.push(draw());
+      }
+    }
+
+    function settle(result){
+      // result: 'win' | 'lose' | 'push'
+      lockGameplayButtons();
+      inRound = false;
+
+      if (result === 'win'){
+        bankroll += roundBet * 2; // return original wager + winnings (1:1)
+        setStatus(playerNoteEl, `You win! Payout: ${formatMoney(roundBet)}.`, 'win');
+        setStatus(dealerNoteEl, 'Dealer settles: player WIN.', 'win');
+      } else if (result === 'push'){
+        bankroll += roundBet; // return wager
+        setStatus(playerNoteEl, `Push. Bet returned: ${formatMoney(roundBet)}.`, 'push');
+        setStatus(dealerNoteEl, 'Dealer settles: PUSH.', 'push');
+      } else {
+        setStatus(playerNoteEl, `You lose. Lost: ${formatMoney(roundBet)}.`, 'lose');
+        setStatus(dealerNoteEl, 'Dealer settles: player LOSE.', 'lose');
+      }
+
+      roundBet = 0;
+      saveBankroll();
+
+      setBetLocked(false);
+      updateTableUI();
+      updateCasinoUI();
+    }
+
+    function finishAndCompare(){
+      dealerPlay();
+      updateTableUI();
+
+      const p = handScore(playerHand);
+      const d = handScore(dealerHand);
+
+      if (d > 21){
+        settle('win');
+        return;
+      }
+      if (p > d){
+        settle('win');
+        return;
+      }
+      if (p < d){
+        settle('lose');
+        return;
+      }
+      settle('push');
+    }
+
+    // -------------------------------
+    // Event handlers
+    // -------------------------------
+
+    betMinusBtn.addEventListener('click', ()=>{
+      if (betLocked) return;
+      bet = Math.max(DEFAULTS.minBet, bet - DEFAULTS.minBet);
+      clampBetToRules();
+      setStatus(playerNoteEl, 'Bet adjusted. Deal when ready.', 'muted');
+    });
+
+    betPlusBtn.addEventListener('click', ()=>{
+      if (betLocked) return;
+      bet = Math.min(DEFAULTS.maxBet, bet + DEFAULTS.minBet);
+      clampBetToRules();
+      setStatus(playerNoteEl, 'Bet adjusted. Deal when ready.', 'muted');
+    });
+
+    resetBankrollBtn.addEventListener('click', ()=>{
+      if (betLocked) return;
+      resetFunds();
+    });
+
+    newGameBtn.addEventListener('click', ()=>{
+      if (inRound) return; // don't allow redeal mid-round
+      startNewRound();
+    });
+
+    hitBtn.addEventListener('click', ()=>{
+      if (!inRound) return;
+      playerHand.push(draw());
+      updateTableUI();
+
+      const p = handScore(playerHand);
+      if (p > 21){
+        dealerHoleHidden = false;
+        updateTableUI();
+        settle('lose');
+      }
+    });
+
+    standBtn.addEventListener('click', ()=>{
+      if (!inRound) return;
+      finishAndCompare();
+    });
+
+    // -------------------------------
+    // Init view
+    // -------------------------------
+    function init(){
+      // Empty hands initially
+      playerHand = [];
+      dealerHand = [];
+      dealerHoleHidden = true;
+      inRound = false;
+      roundBet = 0;
+      setBetLocked(false);
+      lockGameplayButtons();
+
+      updateTableUI();
+      updateCasinoUI();
+
+      setStatus(dealerNoteEl, 'Waiting for deal…', 'muted');
+      setStatus(playerNoteEl, 'Set your bet, then Deal.', 'muted');
+    }
+
+    init();
+  </script>
+</body>
+</html>
