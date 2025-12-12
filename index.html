@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>21 點 | 下注遊戲</title>
+  <title>10點半 | 下注遊戲</title>
   <style>
     :root {
       --bg: #0b1220;
@@ -299,7 +299,7 @@
   <div class="app">
     <header>
       <div>
-        <h1>21 點</h1>
+        <h1>10點半</h1>
         <div class="sub">下注 → 玩家/莊家抽牌 → 結算 → 重新下注</div>
       </div>
       <div class="pills" aria-label="快捷鍵提示">
@@ -352,9 +352,9 @@
           </div>
 
           <footer>
-            提示：抽牌/停牌也可用鍵盤操作（<span class="kbd">H</span>/<span class="kbd">S</span>）。
+            提示：A=1，J/Q/K=0.5，目標10.5，超過即爆牌。
             <span aria-hidden="true">•</span>
-            這只是示範，不包含真實金錢交易。
+            這只是示範，不包含真實金錢交易或進階賭場規則。
           </footer>
         </section>
 
@@ -451,21 +451,15 @@
     }
 
     function cardValue(card) {
-      if (card.r === 'A') return 11;
-      if (['K','Q','J'].includes(card.r)) return 10;
+      if (card.r === 'A') return 1;
+      if (['K','Q','J'].includes(card.r)) return 0.5;
       return Number(card.r);
     }
 
     function score(hand) {
       let total = 0;
-      let aces = 0;
       for (const c of hand) {
         total += cardValue(c);
-        if (c.r === 'A') aces++;
-      }
-      while (total > 21 && aces > 0) {
-        total -= 10;
-        aces--;
       }
       return total;
     }
@@ -517,10 +511,10 @@
       renderHand(dealerCardsEl, dealer, dealerHidden);
 
       const pScore = score(player);
-      const dScore = dealerHidden ? cardValue(dealer[1]) : score(dealer);
+      const dScore = dealerHidden && dealer.length > 1 ? cardValue(dealer[1]) : score(dealer);
 
-      playerScoreEl.textContent = `點數：${pScore}`;
-      dealerScoreEl.textContent = `點數：${dScore}` + (dealerHidden ? '（明牌）' : '');
+      playerScoreEl.textContent = `點數：${pScore % 1 === 0 ? pScore : pScore.toFixed(1)}`;
+      dealerScoreEl.textContent = `點數：${dScore % 1 === 0 ? dScore : dScore.toFixed(1)}` + (dealerHidden && dealer.length > 1 ? '（明牌）' : '');
 
       dealBtn.disabled = inRound || bet <= 0;
       hitBtn.disabled = !inRound;
@@ -564,8 +558,8 @@
       clearBadges();
 
       const p = score(player);
-      if (p === 21) {
-        // natural blackjack
+      if (p === 10.5) {
+        // natural 10.5
         dealerHidden = false;
         settle(true);
         return;
@@ -579,13 +573,13 @@
       if (!inRound) return;
       player.push(deck.pop());
       const p = score(player);
-      if (p > 21) {
+      if (p > 10.5) {
         dealerHidden = false;
         badge(playerBadgesEl, '爆牌', 'bad');
         settle(false, true);
         return;
       }
-      if (p === 21) {
+      if (p === 10.5) {
         stand();
         return;
       }
@@ -597,8 +591,8 @@
       if (!inRound) return;
       dealerHidden = false;
 
-      // dealer draws to 17+
-      while (score(dealer) < 17) dealer.push(deck.pop());
+      // dealer draws until 7.5+
+      while (score(dealer) < 7.5) dealer.push(deck.pop());
 
       settle(false);
     }
@@ -615,26 +609,26 @@
 
       if (playerBust) {
         title = '你爆牌了';
-        msg = '本局你輸了。';
+        msg = '超過 10.5，本局你輸了。';
         cls = 'bad';
         payout = 0;
-      } else if (natural && p === 21) {
-        // blackjack pays 3:2
-        if (d === 21) {
+      } else if (natural && p === 10.5) {
+        // natural 10.5 pays 3:2
+        if (d === 10.5) {
           title = '平手';
-          msg = '雙方皆為 21 點，退回下注金額。';
+          msg = '雙方皆為 10.5 點，退回下注金額。';
           cls = 'warn';
           payout = bet;
         } else {
-          title = 'Blackjack！';
-          msg = '你以天生 21 點獲勝（3:2）。';
+          title = '天生 10.5！';
+          msg = '你以兩張牌達成 10.5 獲勝（3:2）。';
           cls = 'good';
           payout = Math.floor(bet * 2.5);
         }
       } else {
-        if (d > 21) {
+        if (d > 10.5) {
           title = '莊家爆牌';
-          msg = '你贏了！';
+          msg = '莊家超過 10.5，你贏了！';
           cls = 'good';
           payout = bet * 2;
         } else if (p > d) {
@@ -657,9 +651,9 @@
 
       bankroll += payout;
 
-      if (p === 21) badge(playerBadgesEl, '21', 'good');
-      if (d === 21) badge(dealerBadgesEl, '21', 'good');
-      if (d > 21) badge(dealerBadgesEl, '爆牌', 'bad');
+      if (p === 10.5) badge(playerBadgesEl, '10.5', 'good');
+      if (d === 10.5) badge(dealerBadgesEl, '10.5', 'good');
+      if (d > 10.5) badge(dealerBadgesEl, '爆牌', 'bad');
 
       setStatus(title, msg + ' 請重新下注開始下一局。', cls);
 
