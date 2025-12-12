@@ -422,7 +422,7 @@
         const arr = new Uint32Array(d.length);
         window.crypto.getRandomValues(arr);
         for (let i = d.length - 1; i > 0; i--) {
-          const j = arr[i] % (i + 1);
+          const j = Math.floor((arr[i] / 0x100000000) * (i + 1));
           [d[i], d[j]] = [d[j], d[i]];
         }
       } else {
@@ -517,13 +517,6 @@
 
       // Create and shuffle new deck
       deck = newDeck();
-      
-      // Check for deck rebuild if needed (edge case)
-      if (deck.length < 10) {
-        setStatus('牌庫重建', '牌庫不足，已重新建立並洗牌。', 'warn');
-        deck = newDeck();
-      }
-
       player = [];
       dealer = [];
       clearBadges();
@@ -541,6 +534,12 @@
 
     function hit() {
       if (phase !== 'PLAYER_TURN') return;
+      
+      // Check if deck is empty
+      if (deck.length === 0) {
+        setStatus('牌庫重建', '牌庫不足，已重新建立並洗牌。', 'warn');
+        deck = newDeck();
+      }
       
       player.push(deck.pop());
       syncUI();
@@ -566,6 +565,10 @@
       // Dealer draws until >= DEALER_STAND_AT or bust
       setTimeout(() => {
         while (score(dealer) < DEALER_STAND_AT && !isBust(dealer)) {
+          // Check if deck is empty
+          if (deck.length === 0) {
+            deck = newDeck();
+          }
           dealer.push(deck.pop());
         }
         
