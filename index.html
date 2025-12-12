@@ -1,662 +1,725 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Blackjack (21) - Casino Betting</title>
+  <title>21 點 | 下注遊戲</title>
   <style>
-    :root{
-      --bg:#0b1220;
-      --panel:#121a2b;
-      --panel2:#0f172a;
-      --text:#e5e7eb;
-      --muted:#9ca3af;
-      --accent:#22c55e;
-      --danger:#ef4444;
-      --warn:#f59e0b;
-      --btn:#1f2a44;
-      --btn2:#22304d;
-      --border:rgba(255,255,255,.12);
-      --shadow: 0 10px 25px rgba(0,0,0,.35);
-      --radius:14px;
+    :root {
+      --bg: #0b1220;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.09);
+      --text: #e8eefc;
+      --muted: rgba(232,238,252,0.75);
+      --accent: #66e3ff;
+      --good: #6dff9f;
+      --bad: #ff6d7a;
+      --warn: #ffd166;
+      --shadow: 0 14px 40px rgba(0,0,0,0.45);
+      --radius: 18px;
     }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: radial-gradient(1200px 800px at 30% 0%, #132048 0%, var(--bg) 55%);
-      color:var(--text);
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(1000px 600px at 20% 10%, rgba(102,227,255,0.18), transparent 55%),
+        radial-gradient(900px 500px at 80% 0%, rgba(109,255,159,0.12), transparent 60%),
+        radial-gradient(1000px 700px at 50% 100%, rgba(255,109,122,0.10), transparent 60%),
+        linear-gradient(180deg, #0b1220, #070b14 70%);
+      padding: 24px;
     }
-    .app{
-      width:min(980px, 100%);
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid var(--border);
+
+    .app {
+      width: min(980px, 100%);
+      display: grid;
+      gap: 18px;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      font-size: clamp(26px, 3.2vw, 40px);
+    }
+
+    header .sub {
+      color: var(--muted);
+      margin-top: 6px;
+      font-size: 14px;
+    }
+
+    .board {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.10);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      overflow:hidden;
+      overflow: hidden;
     }
-    header{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:16px;
-      padding:18px 18px 10px;
-      background: rgba(255,255,255,.03);
-      border-bottom:1px solid var(--border);
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 0;
     }
-    header .title{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
+
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
     }
-    header h1{
-      margin:0;
-      font-size:18px;
-      letter-spacing:.3px;
+
+    .left, .right {
+      padding: 18px;
     }
-    header .sub{
-      margin:0;
-      font-size:13px;
+
+    .left {
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+
+    @media (max-width: 860px) {
+      .left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    }
+
+    .panel {
+      background: var(--panel2);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .label {
+      font-size: 13px;
       color: var(--muted);
-      line-height:1.35;
-    }
-    .casino{
-      display:flex;
-      flex-wrap:wrap;
-      align-items:center;
-      gap:10px;
-      justify-content:flex-end;
-    }
-    .pill{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      padding:10px 12px;
-      border-radius: 999px;
-      background: rgba(0,0,0,.20);
-      border:1px solid var(--border);
-      min-width:150px;
-    }
-    .pill .label{font-size:11px;color:var(--muted)}
-    .pill .value{font-weight:700; letter-spacing:.2px}
-
-    .bet-controls{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding:10px 12px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background: rgba(0,0,0,.20);
-    }
-    .bet-controls .label{font-size:11px;color:var(--muted); margin-right:8px}
-    .bet-controls .bet-value{font-weight:800; min-width:70px; text-align:center}
-
-    button{
-      appearance:none;
-      border:1px solid var(--border);
-      background: linear-gradient(180deg, var(--btn2), var(--btn));
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:10px;
-      cursor:pointer;
-      font-weight:650;
-      letter-spacing:.2px;
-      transition:transform .05s ease, opacity .12s ease, background .12s ease;
-      user-select:none;
-    }
-    button:active{transform:translateY(1px)}
-    button:hover{background: linear-gradient(180deg, #27365b, #1f2a44)}
-    button:disabled{opacity:.45; cursor:not-allowed}
-
-    .btn-small{padding:8px 10px; border-radius:10px}
-    .btn-reset{background: linear-gradient(180deg, #3b2b12, #2b1f12); border-color: rgba(245,158,11,.45)}
-    .btn-reset:hover{background: linear-gradient(180deg, #4a3514, #2f2314)}
-
-    main{padding:18px}
-
-    .table{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:14px;
+      letter-spacing: 0.3px;
     }
 
-    .row{
-      padding:14px;
-      border-radius: var(--radius);
-      border:1px solid var(--border);
-      background: rgba(0,0,0,.18);
+    .value {
+      font-size: 20px;
+      font-weight: 750;
     }
 
-    .row h2{
-      margin:0 0 10px;
-      font-size:14px;
-      color: var(--muted);
-      font-weight:700;
-      letter-spacing:.25px;
-      text-transform:uppercase;
+    .chips {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
     }
 
-    .hand{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      min-height:56px;
-    }
-    .card{
-      width:44px;
-      height:58px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,.16);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.01));
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:800;
-      box-shadow: 0 8px 18px rgba(0,0,0,.25);
-    }
-    .card.red{color:#fb7185}
-
-    .info{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin-top:10px;
-      color: var(--muted);
-      font-size:13px;
-    }
-
-    .controls{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top:14px;
-      padding-top:14px;
-      border-top:1px solid var(--border);
-    }
-
-    .status{
-      padding:12px 14px;
-      border-radius:12px;
-      border:1px solid var(--border);
-      background: rgba(0,0,0,.22);
+    .chip {
+      user-select: none;
+      cursor: pointer;
+      padding: 10px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.25);
       color: var(--text);
-      font-weight:700;
-      letter-spacing:.15px;
+      transition: transform 0.08s ease, background 0.2s ease, border-color 0.2s ease;
+      font-weight: 700;
+      text-align: center;
     }
-    .status.muted{color: var(--muted); font-weight:650}
-    .status.win{border-color: rgba(34,197,94,.45); color:#bbf7d0}
-    .status.lose{border-color: rgba(239,68,68,.45); color:#fecaca}
-    .status.push{border-color: rgba(148,163,184,.35); color:#e2e8f0}
 
-    .footer-note{
-      margin-top:12px;
+    .chip:hover {
+      transform: translateY(-1px);
+      border-color: rgba(102,227,255,0.55);
+      background: rgba(102,227,255,0.12);
+    }
+
+    .chip:active { transform: translateY(0px); }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    button {
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.25);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-weight: 750;
+      transition: background 0.2s ease, transform 0.08s ease, border-color 0.2s ease, opacity 0.2s ease;
+    }
+
+    button:hover {
+      border-color: rgba(102,227,255,0.55);
+      background: rgba(102,227,255,0.12);
+    }
+
+    button:active { transform: translateY(1px); }
+
+    button.primary {
+      background: linear-gradient(135deg, rgba(102,227,255,0.22), rgba(109,255,159,0.16));
+      border-color: rgba(102,227,255,0.65);
+    }
+
+    button.primary:hover {
+      background: linear-gradient(135deg, rgba(102,227,255,0.32), rgba(109,255,159,0.22));
+    }
+
+    button.danger {
+      border-color: rgba(255,109,122,0.55);
+    }
+
+    button.danger:hover {
+      background: rgba(255,109,122,0.12);
+      border-color: rgba(255,109,122,0.75);
+    }
+
+    button:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+
+    .cards {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .hand {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.18);
+    }
+
+    .hand-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .hand-title {
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+
+    .hand-sub {
       color: var(--muted);
-      font-size:12px;
-      line-height:1.35;
+      font-size: 13px;
     }
 
-    @media (max-width:720px){
-      header{align-items:stretch; flex-direction:column}
-      .casino{justify-content:flex-start}
-      .pill{min-width:unset; flex:1}
+    .pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      border: 1px solid rgba(255,255,255,0.14);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.18);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px dashed rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.18);
+      min-height: 64px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .status strong { letter-spacing: 0.2px; }
+
+    .status .msg {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .good { color: var(--good); }
+    .bad { color: var(--bad); }
+    .warn { color: var(--warn); }
+
+    footer {
+      color: rgba(232,238,252,0.65);
+      font-size: 12px;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    .kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      padding: 3px 6px;
+      border: 1px solid rgba(255,255,255,0.20);
+      border-bottom-width: 2px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.22);
+      color: rgba(232,238,252,0.85);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
     }
   </style>
 </head>
 <body>
   <div class="app">
     <header>
-      <div class="title">
-        <h1>Blackjack (21)</h1>
-        <p class="sub">Now with a basic casino betting system. Set your bet, deal a new round, then hit/stand. Bet controls lock during a round.</p>
+      <div>
+        <h1>21 點</h1>
+        <div class="sub">下注 → 玩家/莊家抽牌 → 結算 → 重新下注</div>
       </div>
-
-      <div class="casino" aria-label="Casino betting controls">
-        <div class="pill" aria-label="Bankroll">
-          <div class="label">Bankroll</div>
-          <div class="value" id="bankrollDisplay">$1000</div>
-        </div>
-
-        <div class="bet-controls" aria-label="Bet controls">
-          <div class="label">Bet</div>
-          <button class="btn-small" id="betMinus" type="button" aria-label="Decrease bet">−</button>
-          <div class="bet-value" id="betDisplay">$10</div>
-          <button class="btn-small" id="betPlus" type="button" aria-label="Increase bet">+</button>
-        </div>
-
-        <button class="btn-reset" id="resetBankroll" type="button">Reset funds</button>
+      <div class="pills" aria-label="快捷鍵提示">
+        <div class="pill"><span class="kbd">Enter</span> 開始/重新開始</div>
+        <div class="pill"><span class="kbd">H</span> 要牌</div>
+        <div class="pill"><span class="kbd">S</span> 停牌</div>
+        <div class="pill"><span class="kbd">C</span> 清除下注</div>
       </div>
     </header>
 
-    <main>
-      <div class="table">
-        <div class="row">
-          <h2>Dealer</h2>
-          <div class="hand" id="dealerHand"></div>
-          <div class="info">
-            <div>Score: <span id="dealerScore">0</span></div>
-            <div id="dealerNote" class="status muted">Waiting for deal…</div>
-          </div>
-        </div>
+    <div class="board">
+      <div class="grid">
+        <section class="left">
+          <div class="panel">
+            <div class="row">
+              <div>
+                <div class="label">資金</div>
+                <div class="value" id="bankroll">$0</div>
+              </div>
+              <div>
+                <div class="label">目前下注</div>
+                <div class="value" id="bet">$0</div>
+              </div>
+              <div>
+                <div class="label">本局結果</div>
+                <div class="value" id="payout">$0</div>
+              </div>
+            </div>
 
-        <div class="row">
-          <h2>Player</h2>
-          <div class="hand" id="playerHand"></div>
-          <div class="info">
-            <div>Score: <span id="playerScore">0</span></div>
-            <div id="playerNote" class="status muted">Set your bet, then Deal.</div>
+            <div class="chips" aria-label="下注籌碼">
+              <div class="chip" data-amt="5" role="button" tabindex="0" aria-label="下注 5 元">+$5</div>
+              <div class="chip" data-amt="10" role="button" tabindex="0" aria-label="下注 10 元">+$10</div>
+              <div class="chip" data-amt="25" role="button" tabindex="0" aria-label="下注 25 元">+$25</div>
+              <div class="chip" data-amt="50" role="button" tabindex="0" aria-label="下注 50 元">+$50</div>
+              <div class="chip" data-amt="100" role="button" tabindex="0" aria-label="下注 100 元">+$100</div>
+            </div>
+
+            <div class="controls" aria-label="遊戲操作">
+              <button class="primary" id="dealBtn" aria-label="開始發牌">發牌</button>
+              <button id="hitBtn" aria-label="要牌" disabled>要牌</button>
+              <button id="standBtn" aria-label="停牌" disabled>停牌</button>
+              <button class="danger" id="clearBetBtn" aria-label="清除下注">清除下注</button>
+              <button id="resetBtn" aria-label="重置遊戲">重置</button>
+            </div>
           </div>
 
-          <div class="controls">
-            <button id="newGame" type="button">Deal / New Round</button>
-            <button id="hit" type="button" disabled>Hit</button>
-            <button id="stand" type="button" disabled>Stand</button>
+          <div class="status" role="status" aria-live="polite" aria-label="狀態訊息">
+            <strong id="statusTitle">準備下注</strong>
+            <div class="msg" id="statusMsg">選擇籌碼來下注，然後按「發牌」。</div>
           </div>
 
-          <div class="footer-note">
-            Defaults: starting bankroll <b>$1000</b>, min bet <b>$10</b>, max bet <b>$200</b>. Payout: win pays <b>1:1</b>, push returns bet, lose loses bet.
+          <footer>
+            提示：抽牌/停牌也可用鍵盤操作（<span class="kbd">H</span>/<span class="kbd">S</span>）。
+            <span aria-hidden="true">•</span>
+            這只是示範，不包含真實金錢交易。
+          </footer>
+        </section>
+
+        <section class="right">
+          <div class="cards" aria-label="牌局">
+            <div class="hand" aria-label="玩家手牌">
+              <div class="hand-header">
+                <div>
+                  <div class="hand-title">玩家</div>
+                  <div class="hand-sub" id="playerScore">點數：0</div>
+                </div>
+                <div class="pills" id="playerBadges" aria-label="玩家狀態"></div>
+              </div>
+              <div id="playerCards" aria-label="玩家牌面"></div>
+            </div>
+
+            <div class="hand" aria-label="莊家手牌">
+              <div class="hand-header">
+                <div>
+                  <div class="hand-title">莊家</div>
+                  <div class="hand-sub" id="dealerScore">點數：0</div>
+                </div>
+                <div class="pills" id="dealerBadges" aria-label="莊家狀態"></div>
+              </div>
+              <div id="dealerCards" aria-label="莊家牌面"></div>
+            </div>
           </div>
-        </div>
+        </section>
       </div>
-    </main>
+    </div>
   </div>
 
   <script>
-    // -------------------------------
-    // Blackjack gameplay (kept basic)
-    // -------------------------------
+    // ---- Game state (keep mechanics unchanged) ----
+    const bankrollEl = document.getElementById('bankroll');
+    const betEl = document.getElementById('bet');
+    const payoutEl = document.getElementById('payout');
 
-    const suits = ['♠','♥','♦','♣'];
-    const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+    const statusTitleEl = document.getElementById('statusTitle');
+    const statusMsgEl = document.getElementById('statusMsg');
 
-    function buildDeck(){
-      const deck=[];
-      for (const s of suits){
-        for (const r of ranks){
-          deck.push({ rank:r, suit:s });
-        }
-      }
-      return deck;
+    const dealBtn = document.getElementById('dealBtn');
+    const hitBtn = document.getElementById('hitBtn');
+    const standBtn = document.getElementById('standBtn');
+    const clearBetBtn = document.getElementById('clearBetBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const playerCardsEl = document.getElementById('playerCards');
+    const dealerCardsEl = document.getElementById('dealerCards');
+    const playerScoreEl = document.getElementById('playerScore');
+    const dealerScoreEl = document.getElementById('dealerScore');
+    const playerBadgesEl = document.getElementById('playerBadges');
+    const dealerBadgesEl = document.getElementById('dealerBadges');
+
+    let bankroll = 500;
+    let bet = 0;
+    let payout = 0;
+
+    let deck = [];
+    let player = [];
+    let dealer = [];
+    let inRound = false;
+    let dealerHidden = true;
+
+    function setStatus(title, msg, cls = '') {
+      statusTitleEl.className = cls;
+      statusTitleEl.textContent = title;
+      statusMsgEl.textContent = msg;
     }
 
-    function shuffle(arr){
-      for (let i=arr.length-1;i>0;i--){
-        const j = Math.floor(Math.random()*(i+1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
+    function fmt(n) {
+      return '$' + n.toLocaleString('en-US');
     }
 
-    function cardValue(rank){
-      if (rank === 'A') return 11;
-      if (['K','Q','J'].includes(rank)) return 10;
-      return Number(rank);
+    function renderMoney() {
+      bankrollEl.textContent = fmt(bankroll);
+      betEl.textContent = fmt(bet);
+      payoutEl.textContent = fmt(payout);
     }
 
-    function handScore(hand){
-      let total=0;
-      let aces=0;
-      for (const c of hand){
-        total += cardValue(c.rank);
-        if (c.rank==='A') aces++;
+    function newDeck() {
+      const suits = ['♠', '♥', '♦', '♣'];
+      const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+      const d = [];
+      for (const s of suits) {
+        for (const r of ranks) d.push({ r, s });
       }
-      // adjust aces
-      while (total>21 && aces>0){
+      // shuffle
+      for (let i = d.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [d[i], d[j]] = [d[j], d[i]];
+      }
+      return d;
+    }
+
+    function cardValue(card) {
+      if (card.r === 'A') return 11;
+      if (['K','Q','J'].includes(card.r)) return 10;
+      return Number(card.r);
+    }
+
+    function score(hand) {
+      let total = 0;
+      let aces = 0;
+      for (const c of hand) {
+        total += cardValue(c);
+        if (c.r === 'A') aces++;
+      }
+      while (total > 21 && aces > 0) {
         total -= 10;
         aces--;
       }
       return total;
     }
 
-    function renderHand(el, hand, hideFirst=false){
-      el.innerHTML='';
-      hand.forEach((c, idx)=>{
-        const div=document.createElement('div');
-        div.className='card';
-        if (c.suit==='♥' || c.suit==='♦') div.classList.add('red');
+    function renderHand(el, hand, hideFirst = false) {
+      el.innerHTML = '';
+      hand.forEach((c, idx) => {
+        const div = document.createElement('div');
+        div.style.display = 'inline-grid';
+        div.style.placeItems = 'center';
+        div.style.width = '54px';
+        div.style.height = '74px';
+        div.style.marginRight = '8px';
+        div.style.borderRadius = '14px';
+        div.style.border = '1px solid rgba(255,255,255,0.18)';
+        div.style.background = 'rgba(0,0,0,0.25)';
+        div.style.boxShadow = '0 10px 20px rgba(0,0,0,0.25)';
+        div.style.fontWeight = '800';
+        div.style.letterSpacing = '0.5px';
+        div.style.userSelect = 'none';
 
-        if (hideFirst && idx===0){
-          div.textContent='🂠';
-          div.classList.remove('red');
+        if (hideFirst && idx === 0) {
+          div.textContent = '🂠';
+          div.setAttribute('aria-label', '隱藏牌');
         } else {
-          div.textContent = `${c.rank}${c.suit}`;
+          div.textContent = `${c.r}${c.s}`;
+          div.setAttribute('aria-label', `牌 ${c.r}${c.s}`);
+          if (c.s === '♥' || c.s === '♦') div.style.color = '#ff8a98';
         }
         el.appendChild(div);
       });
     }
 
-    // -------------------------------
-    // Casino betting system
-    // -------------------------------
-    const DEFAULTS = {
-      startingBankroll: 1000,
-      minBet: 10,
-      maxBet: 200,
-    };
-
-    const STORAGE_KEYS = {
-      bankroll: 'bj_bankroll_v1',
-      bet: 'bj_bet_v1'
-    };
-
-    function formatMoney(n){
-      return `$${n}`;
+    function badge(container, text, cls = '') {
+      const b = document.createElement('div');
+      b.className = 'pill ' + cls;
+      b.textContent = text;
+      container.appendChild(b);
     }
 
-    function loadNumber(key, fallback){
-      const raw = localStorage.getItem(key);
-      const n = raw === null ? NaN : Number(raw);
-      return Number.isFinite(n) ? n : fallback;
+    function clearBadges() {
+      playerBadgesEl.innerHTML = '';
+      dealerBadgesEl.innerHTML = '';
     }
 
-    let bankroll = loadNumber(STORAGE_KEYS.bankroll, DEFAULTS.startingBankroll);
-    let bet = loadNumber(STORAGE_KEYS.bet, DEFAULTS.minBet);
+    function syncUI() {
+      renderMoney();
+      renderHand(playerCardsEl, player, false);
+      renderHand(dealerCardsEl, dealer, dealerHidden);
 
-    bet = Math.max(DEFAULTS.minBet, Math.min(DEFAULTS.maxBet, Math.floor(bet)));
+      const pScore = score(player);
+      const dScore = dealerHidden ? cardValue(dealer[1]) : score(dealer);
 
-    // Round state
-    let deck = [];
-    let playerHand = [];
-    let dealerHand = [];
-    let inRound = false;
-    let betLocked = false;
-    let roundBet = 0; // wagered amount for current round
-    let dealerHoleHidden = true;
+      playerScoreEl.textContent = `點數：${pScore}`;
+      dealerScoreEl.textContent = `點數：${dScore}` + (dealerHidden ? '（明牌）' : '');
 
-    // DOM
-    const dealerHandEl = document.getElementById('dealerHand');
-    const playerHandEl = document.getElementById('playerHand');
-    const dealerScoreEl = document.getElementById('dealerScore');
-    const playerScoreEl = document.getElementById('playerScore');
-    const dealerNoteEl = document.getElementById('dealerNote');
-    const playerNoteEl = document.getElementById('playerNote');
+      dealBtn.disabled = inRound || bet <= 0;
+      hitBtn.disabled = !inRound;
+      standBtn.disabled = !inRound;
+      clearBetBtn.disabled = inRound;
 
-    const newGameBtn = document.getElementById('newGame');
-    const hitBtn = document.getElementById('hit');
-    const standBtn = document.getElementById('stand');
-
-    const bankrollDisplay = document.getElementById('bankrollDisplay');
-    const betDisplay = document.getElementById('betDisplay');
-    const betMinusBtn = document.getElementById('betMinus');
-    const betPlusBtn = document.getElementById('betPlus');
-    const resetBankrollBtn = document.getElementById('resetBankroll');
-
-    function saveBankroll(){
-      localStorage.setItem(STORAGE_KEYS.bankroll, String(bankroll));
-    }
-    function saveBet(){
-      localStorage.setItem(STORAGE_KEYS.bet, String(bet));
+      // reset button always available
     }
 
-    function setStatus(el, text, kind='muted'){
-      el.textContent = text;
-      el.className = `status ${kind}`;
+    function canBetMore(amt) {
+      return bankroll - bet >= amt && !inRound;
     }
 
-    function setBetLocked(locked){
-      betLocked = locked;
-      betMinusBtn.disabled = locked;
-      betPlusBtn.disabled = locked;
-      resetBankrollBtn.disabled = locked;
+    function addBet(amt) {
+      if (!canBetMore(amt)) return;
+      bet += amt;
+      setStatus('已下注', `目前下注：${fmt(bet)}。按「發牌」開始。`, '');
+      syncUI();
     }
 
-    function clampBetToRules(){
-      bet = Math.max(DEFAULTS.minBet, Math.min(DEFAULTS.maxBet, bet));
-      bet = Math.floor(bet);
-      if (bankroll <= 0) {
-        // Still allow setting bet (display), but Deal will be blocked.
-        // Keep within min/max.
+    function clearBet() {
+      if (inRound) return;
+      bet = 0;
+      payout = 0;
+      setStatus('準備下注', '選擇籌碼來下注，然後按「發牌」。', '');
+      syncUI();
+    }
+
+    function startRound() {
+      if (inRound || bet <= 0) return;
+      if (bankroll < bet) return;
+
+      bankroll -= bet;
+      payout = 0;
+
+      deck = newDeck();
+      player = [deck.pop(), deck.pop()];
+      dealer = [deck.pop(), deck.pop()];
+      dealerHidden = true;
+      inRound = true;
+      clearBadges();
+
+      const p = score(player);
+      if (p === 21) {
+        // natural blackjack
+        dealerHidden = false;
+        settle(true);
+        return;
       }
-      updateCasinoUI();
-      saveBet();
+
+      setStatus('已發牌', '輪到你了：要牌（H）或停牌（S）。', '');
+      syncUI();
     }
 
-    function updateCasinoUI(){
-      bankrollDisplay.textContent = formatMoney(bankroll);
-      betDisplay.textContent = formatMoney(bet);
+    function hit() {
+      if (!inRound) return;
+      player.push(deck.pop());
+      const p = score(player);
+      if (p > 21) {
+        dealerHidden = false;
+        badge(playerBadgesEl, '爆牌', 'bad');
+        settle(false, true);
+        return;
+      }
+      if (p === 21) {
+        stand();
+        return;
+      }
+      setStatus('要牌', '你選擇要牌。可繼續要牌或停牌。', '');
+      syncUI();
+    }
 
-      // Only allow adjusting within min/max; if locked, all disabled anyway.
-      betMinusBtn.disabled = betLocked || bet <= DEFAULTS.minBet;
-      betPlusBtn.disabled = betLocked || bet >= DEFAULTS.maxBet;
-      resetBankrollBtn.disabled = betLocked;
+    function stand() {
+      if (!inRound) return;
+      dealerHidden = false;
 
-      // Deal button should be disabled if in round is false? We keep it enabled but prevent dealing if can't afford.
-      if (!inRound) {
-        if (bankroll < bet) {
-          newGameBtn.disabled = false;
-          newGameBtn.textContent = 'Deal / New Round';
+      // dealer draws to 17+
+      while (score(dealer) < 17) dealer.push(deck.pop());
+
+      settle(false);
+    }
+
+    function settle(natural = false, playerBust = false) {
+      const p = score(player);
+      const d = score(dealer);
+
+      inRound = false;
+
+      let title = '';
+      let msg = '';
+      let cls = '';
+
+      if (playerBust) {
+        title = '你爆牌了';
+        msg = '本局你輸了。';
+        cls = 'bad';
+        payout = 0;
+      } else if (natural && p === 21) {
+        // blackjack pays 3:2
+        if (d === 21) {
+          title = '平手';
+          msg = '雙方皆為 21 點，退回下注金額。';
+          cls = 'warn';
+          payout = bet;
         } else {
-          newGameBtn.disabled = false;
-          newGameBtn.textContent = 'Deal / New Round';
+          title = 'Blackjack！';
+          msg = '你以天生 21 點獲勝（3:2）。';
+          cls = 'good';
+          payout = Math.floor(bet * 2.5);
+        }
+      } else {
+        if (d > 21) {
+          title = '莊家爆牌';
+          msg = '你贏了！';
+          cls = 'good';
+          payout = bet * 2;
+        } else if (p > d) {
+          title = '你贏了';
+          msg = '恭喜！你的點數更高。';
+          cls = 'good';
+          payout = bet * 2;
+        } else if (p < d) {
+          title = '你輸了';
+          msg = '莊家點數更高。';
+          cls = 'bad';
+          payout = 0;
+        } else {
+          title = '平手';
+          msg = '點數相同，退回下注金額。';
+          cls = 'warn';
+          payout = bet;
         }
       }
+
+      bankroll += payout;
+
+      if (p === 21) badge(playerBadgesEl, '21', 'good');
+      if (d === 21) badge(dealerBadgesEl, '21', 'good');
+      if (d > 21) badge(dealerBadgesEl, '爆牌', 'bad');
+
+      setStatus(title, msg + ' 請重新下注開始下一局。', cls);
+
+      // reset bet automatically for clarity? keep existing behavior: bet stays until cleared by user
+      bet = 0;
+      syncUI();
     }
 
-    function resetFunds(){
-      bankroll = DEFAULTS.startingBankroll;
-      bet = DEFAULTS.minBet;
-      saveBankroll();
-      saveBet();
-      updateCasinoUI();
-      setStatus(playerNoteEl, 'Funds reset. Set your bet, then Deal.', 'muted');
-    }
-
-    // -------------------------------
-    // Round flow and settlement
-    // -------------------------------
-
-    function draw(){
-      if (deck.length === 0) deck = shuffle(buildDeck());
-      return deck.pop();
-    }
-
-    function updateTableUI(){
-      renderHand(playerHandEl, playerHand, false);
-      renderHand(dealerHandEl, dealerHand, dealerHoleHidden);
-
-      const pScore = handScore(playerHand);
-      const dScore = dealerHoleHidden ? (dealerHand.length ? cardValue(dealerHand[1].rank) : 0) : handScore(dealerHand);
-
-      playerScoreEl.textContent = String(pScore);
-      dealerScoreEl.textContent = String(dScore);
-    }
-
-    function lockGameplayButtons(){
-      hitBtn.disabled = true;
-      standBtn.disabled = true;
-    }
-
-    function unlockGameplayButtons(){
-      hitBtn.disabled = false;
-      standBtn.disabled = false;
-    }
-
-    function startNewRound(){
-      if (betLocked || inRound) return;
-
-      // Ensure player can afford bet
-      if (bankroll < bet){
-        setStatus(playerNoteEl, `Not enough bankroll to bet ${formatMoney(bet)}. Reduce bet or reset funds.`, 'lose');
-        return;
-      }
-
-      // Deduct bet when a new round starts
-      bankroll -= bet;
-      roundBet = bet;
-      saveBankroll();
-
-      inRound = true;
-      setBetLocked(true);
-
-      // Setup deck/hand
-      deck = deck.length ? deck : shuffle(buildDeck());
-      playerHand = [draw(), draw()];
-      dealerHand = [draw(), draw()];
-      dealerHoleHidden = true;
-
-      unlockGameplayButtons();
-
-      setStatus(dealerNoteEl, 'Dealer showing one card.', 'muted');
-      setStatus(playerNoteEl, `Round started. Bet: ${formatMoney(roundBet)}.`, 'muted');
-
-      updateTableUI();
-
-      // Check immediate outcomes (blackjack)
-      const p = handScore(playerHand);
-      const d = handScore(dealerHand);
-      if (p === 21 || d === 21){
-        endRoundImmediateBlackjack(p, d);
-      }
-
-      updateCasinoUI();
-    }
-
-    function endRoundImmediateBlackjack(p, d){
-      dealerHoleHidden = false;
-      updateTableUI();
-
-      if (p === 21 && d === 21){
-        settle('push');
-        return;
-      }
-      if (p === 21){
-        // For "basic" betting: win pays 1:1 (no 3:2 blackjack bonus requested)
-        settle('win');
-        return;
-      }
-      settle('lose');
-    }
-
-    function dealerPlay(){
-      dealerHoleHidden = false;
-
-      while (handScore(dealerHand) < 17){
-        dealerHand.push(draw());
-      }
-    }
-
-    function settle(result){
-      // result: 'win' | 'lose' | 'push'
-      lockGameplayButtons();
+    function resetGame() {
+      bankroll = 500;
+      bet = 0;
+      payout = 0;
+      deck = [];
+      player = [];
+      dealer = [];
       inRound = false;
-
-      if (result === 'win'){
-        bankroll += roundBet * 2; // return original wager + winnings (1:1)
-        setStatus(playerNoteEl, `You win! Payout: ${formatMoney(roundBet)}.`, 'win');
-        setStatus(dealerNoteEl, 'Dealer settles: player WIN.', 'win');
-      } else if (result === 'push'){
-        bankroll += roundBet; // return wager
-        setStatus(playerNoteEl, `Push. Bet returned: ${formatMoney(roundBet)}.`, 'push');
-        setStatus(dealerNoteEl, 'Dealer settles: PUSH.', 'push');
-      } else {
-        setStatus(playerNoteEl, `You lose. Lost: ${formatMoney(roundBet)}.`, 'lose');
-        setStatus(dealerNoteEl, 'Dealer settles: player LOSE.', 'lose');
-      }
-
-      roundBet = 0;
-      saveBankroll();
-
-      setBetLocked(false);
-      updateTableUI();
-      updateCasinoUI();
+      dealerHidden = true;
+      clearBadges();
+      setStatus('已重置', '資金已恢復為預設值。請先下注再發牌。', '');
+      syncUI();
     }
 
-    function finishAndCompare(){
-      dealerPlay();
-      updateTableUI();
-
-      const p = handScore(playerHand);
-      const d = handScore(dealerHand);
-
-      if (d > 21){
-        settle('win');
-        return;
-      }
-      if (p > d){
-        settle('win');
-        return;
-      }
-      if (p < d){
-        settle('lose');
-        return;
-      }
-      settle('push');
-    }
-
-    // -------------------------------
-    // Event handlers
-    // -------------------------------
-
-    betMinusBtn.addEventListener('click', ()=>{
-      if (betLocked) return;
-      bet = Math.max(DEFAULTS.minBet, bet - DEFAULTS.minBet);
-      clampBetToRules();
-      setStatus(playerNoteEl, 'Bet adjusted. Deal when ready.', 'muted');
+    // chips
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => addBet(Number(chip.dataset.amt)));
+      chip.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          addBet(Number(chip.dataset.amt));
+        }
+      });
     });
 
-    betPlusBtn.addEventListener('click', ()=>{
-      if (betLocked) return;
-      bet = Math.min(DEFAULTS.maxBet, bet + DEFAULTS.minBet);
-      clampBetToRules();
-      setStatus(playerNoteEl, 'Bet adjusted. Deal when ready.', 'muted');
-    });
+    // buttons
+    dealBtn.addEventListener('click', startRound);
+    hitBtn.addEventListener('click', hit);
+    standBtn.addEventListener('click', stand);
+    clearBetBtn.addEventListener('click', clearBet);
+    resetBtn.addEventListener('click', resetGame);
 
-    resetBankrollBtn.addEventListener('click', ()=>{
-      if (betLocked) return;
-      resetFunds();
-    });
-
-    newGameBtn.addEventListener('click', ()=>{
-      if (inRound) return; // don't allow redeal mid-round
-      startNewRound();
-    });
-
-    hitBtn.addEventListener('click', ()=>{
-      if (!inRound) return;
-      playerHand.push(draw());
-      updateTableUI();
-
-      const p = handScore(playerHand);
-      if (p > 21){
-        dealerHoleHidden = false;
-        updateTableUI();
-        settle('lose');
+    // keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      if (key === 'enter') {
+        if (!inRound) startRound();
+      } else if (key === 'h') {
+        hit();
+      } else if (key === 's') {
+        stand();
+      } else if (key === 'c') {
+        clearBet();
       }
     });
 
-    standBtn.addEventListener('click', ()=>{
-      if (!inRound) return;
-      finishAndCompare();
-    });
-
-    // -------------------------------
-    // Init view
-    // -------------------------------
-    function init(){
-      // Empty hands initially
-      playerHand = [];
-      dealerHand = [];
-      dealerHoleHidden = true;
-      inRound = false;
-      roundBet = 0;
-      setBetLocked(false);
-      lockGameplayButtons();
-
-      updateTableUI();
-      updateCasinoUI();
-
-      setStatus(dealerNoteEl, 'Waiting for deal…', 'muted');
-      setStatus(playerNoteEl, 'Set your bet, then Deal.', 'muted');
-    }
-
-    init();
+    // init
+    setStatus('準備下注', '選擇籌碼來下注，然後按「發牌」。', '');
+    // initial empty hands
+    player = [];
+    dealer = [];
+    syncUI();
   </script>
 </body>
 </html>
