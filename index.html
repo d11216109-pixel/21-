@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>21 點 | 下注遊戲</title>
+  <title>10點半 | Ten and a Half</title>
   <style>
     :root {
       --bg: #0b1220;
@@ -299,14 +299,13 @@
   <div class="app">
     <header>
       <div>
-        <h1>21 點</h1>
-        <div class="sub">下注 → 玩家/莊家抽牌 → 結算 → 重新下注</div>
+        <h1>10點半（Ten and a Half）</h1>
+        <div class="sub">新局 → 玩家/莊家抽牌 → 結算 → 再來一局</div>
       </div>
       <div class="pills" aria-label="快捷鍵提示">
-        <div class="pill"><span class="kbd">Enter</span> 開始/重新開始</div>
+        <div class="pill"><span class="kbd">Enter</span> 新局</div>
         <div class="pill"><span class="kbd">H</span> 要牌</div>
         <div class="pill"><span class="kbd">S</span> 停牌</div>
-        <div class="pill"><span class="kbd">C</span> 清除下注</div>
       </div>
     </header>
 
@@ -314,35 +313,21 @@
       <div class="grid">
         <section class="left">
           <div class="panel">
-            <div class="row">
-              <div>
-                <div class="label">資金</div>
-                <div class="value" id="bankroll">$0</div>
-              </div>
-              <div>
-                <div class="label">目前下注</div>
-                <div class="value" id="bet">$0</div>
-              </div>
-              <div>
-                <div class="label">本局結果</div>
-                <div class="value" id="payout">$0</div>
+            <div style="padding: 10px 0;">
+              <div class="label" style="margin-bottom: 8px;">遊戲規則</div>
+              <div style="font-size: 13px; line-height: 1.6; color: var(--muted);">
+                • 目標：點數接近 10.5 但不超過<br>
+                • 點數：A=1、2~10=牌面、J/Q/K=0.5<br>
+                • 超過 10.5 立即爆牌<br>
+                • 莊家到達 9.0 時停牌<br>
+                • 牌庫剩餘：<span id="deckCount">52</span> 張
               </div>
             </div>
 
-            <div class="chips" aria-label="下注籌碼">
-              <div class="chip" data-amt="5" role="button" tabindex="0" aria-label="下注 5 元">+$5</div>
-              <div class="chip" data-amt="10" role="button" tabindex="0" aria-label="下注 10 元">+$10</div>
-              <div class="chip" data-amt="25" role="button" tabindex="0" aria-label="下注 25 元">+$25</div>
-              <div class="chip" data-amt="50" role="button" tabindex="0" aria-label="下注 50 元">+$50</div>
-              <div class="chip" data-amt="100" role="button" tabindex="0" aria-label="下注 100 元">+$100</div>
-            </div>
-
-            <div class="controls" aria-label="遊戲操作">
-              <button class="primary" id="dealBtn" aria-label="開始發牌">發牌</button>
-              <button id="hitBtn" aria-label="要牌" disabled>要牌</button>
-              <button id="standBtn" aria-label="停牌" disabled>停牌</button>
-              <button class="danger" id="clearBetBtn" aria-label="清除下注">清除下注</button>
-              <button id="resetBtn" aria-label="重置遊戲">重置</button>
+            <div class="controls" aria-label="遊戲操作" style="margin-top: 14px;">
+              <button class="primary" id="dealBtn" aria-label="新局">新局</button>
+              <button id="hitBtn" aria-label="要牌" disabled>要牌（H）</button>
+              <button id="standBtn" aria-label="停牌" disabled>停牌（S）</button>
             </div>
           </div>
 
@@ -352,9 +337,9 @@
           </div>
 
           <footer>
-            提示：抽牌/停牌也可用鍵盤操作（<span class="kbd">H</span>/<span class="kbd">S</span>）。
+            提示：要牌/停牌可用鍵盤快捷鍵（<span class="kbd">H</span>/<span class="kbd">S</span>）。
             <span aria-hidden="true">•</span>
-            這只是示範，不包含真實金錢交易。
+            單機離線遊戲，無需網路連線。
           </footer>
         </section>
 
@@ -388,19 +373,19 @@
   </div>
 
   <script>
-    // ---- Game state (keep mechanics unchanged) ----
-    const bankrollEl = document.getElementById('bankroll');
-    const betEl = document.getElementById('bet');
-    const payoutEl = document.getElementById('payout');
+    // ---- Game Constants ----
+    const TARGET = 10.5;
+    const DEALER_STAND_AT = 9.0;
+    const INITIAL_CARDS = 1;
 
+    // ---- DOM Elements ----
     const statusTitleEl = document.getElementById('statusTitle');
     const statusMsgEl = document.getElementById('statusMsg');
+    const deckCountEl = document.getElementById('deckCount');
 
     const dealBtn = document.getElementById('dealBtn');
     const hitBtn = document.getElementById('hitBtn');
     const standBtn = document.getElementById('standBtn');
-    const clearBetBtn = document.getElementById('clearBetBtn');
-    const resetBtn = document.getElementById('resetBtn');
 
     const playerCardsEl = document.getElementById('playerCards');
     const dealerCardsEl = document.getElementById('dealerCards');
@@ -409,15 +394,11 @@
     const playerBadgesEl = document.getElementById('playerBadges');
     const dealerBadgesEl = document.getElementById('dealerBadges');
 
-    let bankroll = 500;
-    let bet = 0;
-    let payout = 0;
-
+    // ---- Game State ----
     let deck = [];
     let player = [];
     let dealer = [];
-    let inRound = false;
-    let dealerHidden = true;
+    let phase = 'IDLE'; // IDLE, PLAYER_TURN, DEALER_TURN, SETTLED
 
     function setStatus(title, msg, cls = '') {
       statusTitleEl.className = cls;
@@ -425,14 +406,8 @@
       statusMsgEl.textContent = msg;
     }
 
-    function fmt(n) {
-      return '$' + n.toLocaleString('en-US');
-    }
-
-    function renderMoney() {
-      bankrollEl.textContent = fmt(bankroll);
-      betEl.textContent = fmt(bet);
-      payoutEl.textContent = fmt(payout);
+    function updateDeckCount() {
+      deckCountEl.textContent = deck.length;
     }
 
     function newDeck() {
@@ -442,36 +417,49 @@
       for (const s of suits) {
         for (const r of ranks) d.push({ r, s });
       }
-      // shuffle
-      for (let i = d.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [d[i], d[j]] = [d[j], d[i]];
+      // Shuffle using Fisher-Yates with crypto.getRandomValues if available
+      if (window.crypto && window.crypto.getRandomValues) {
+        const arr = new Uint32Array(d.length);
+        window.crypto.getRandomValues(arr);
+        for (let i = d.length - 1; i > 0; i--) {
+          const j = Math.floor((arr[i] / 0x100000000) * (i + 1));
+          [d[i], d[j]] = [d[j], d[i]];
+        }
+      } else {
+        // Fallback to Math.random
+        console.warn('crypto.getRandomValues not available, using Math.random');
+        for (let i = d.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [d[i], d[j]] = [d[j], d[i]];
+        }
       }
       return d;
     }
 
     function cardValue(card) {
-      if (card.r === 'A') return 11;
-      if (['K','Q','J'].includes(card.r)) return 10;
+      if (card.r === 'A') return 1;
+      if (['K','Q','J'].includes(card.r)) return 0.5;
       return Number(card.r);
     }
 
     function score(hand) {
       let total = 0;
-      let aces = 0;
       for (const c of hand) {
         total += cardValue(c);
-        if (c.r === 'A') aces++;
-      }
-      while (total > 21 && aces > 0) {
-        total -= 10;
-        aces--;
       }
       return total;
     }
 
-    function renderHand(el, hand, hideFirst = false) {
+    function isBust(hand) {
+      return score(hand) > TARGET;
+    }
+
+    function renderHand(el, hand) {
       el.innerHTML = '';
+      if (hand.length === 0) {
+        el.innerHTML = '<div style="color: var(--muted); font-size: 13px;">尚未發牌</div>';
+        return;
+      }
       hand.forEach((c, idx) => {
         const div = document.createElement('div');
         div.style.display = 'inline-grid';
@@ -487,14 +475,9 @@
         div.style.letterSpacing = '0.5px';
         div.style.userSelect = 'none';
 
-        if (hideFirst && idx === 0) {
-          div.textContent = '🂠';
-          div.setAttribute('aria-label', '隱藏牌');
-        } else {
-          div.textContent = `${c.r}${c.s}`;
-          div.setAttribute('aria-label', `牌 ${c.r}${c.s}`);
-          if (c.s === '♥' || c.s === '♦') div.style.color = '#ff8a98';
-        }
+        div.textContent = `${c.r}${c.s}`;
+        div.setAttribute('aria-label', `牌 ${c.r}${c.s}`);
+        if (c.s === '♥' || c.s === '♦') div.style.color = '#ff8a98';
         el.appendChild(div);
       });
     }
@@ -512,211 +495,156 @@
     }
 
     function syncUI() {
-      renderMoney();
-      renderHand(playerCardsEl, player, false);
-      renderHand(dealerCardsEl, dealer, dealerHidden);
+      renderHand(playerCardsEl, player);
+      renderHand(dealerCardsEl, dealer);
 
-      const pScore = score(player);
-      const dScore = dealerHidden ? cardValue(dealer[1]) : score(dealer);
+      const pScore = player.length > 0 ? score(player) : 0;
+      const dScore = dealer.length > 0 ? score(dealer) : 0;
 
-      playerScoreEl.textContent = `點數：${pScore}`;
-      dealerScoreEl.textContent = `點數：${dScore}` + (dealerHidden ? '（明牌）' : '');
+      playerScoreEl.textContent = `點數：${pScore.toFixed(1)}`;
+      dealerScoreEl.textContent = `點數：${dScore.toFixed(1)}`;
 
-      dealBtn.disabled = inRound || bet <= 0;
-      hitBtn.disabled = !inRound;
-      standBtn.disabled = !inRound;
-      clearBetBtn.disabled = inRound;
+      updateDeckCount();
 
-      // reset button always available
-    }
-
-    function canBetMore(amt) {
-      return bankroll - bet >= amt && !inRound;
-    }
-
-    function addBet(amt) {
-      if (!canBetMore(amt)) return;
-      bet += amt;
-      setStatus('已下注', `目前下注：${fmt(bet)}。按「發牌」開始。`, '');
-      syncUI();
-    }
-
-    function clearBet() {
-      if (inRound) return;
-      bet = 0;
-      payout = 0;
-      setStatus('準備下注', '選擇籌碼來下注，然後按「發牌」。', '');
-      syncUI();
+      // Button states based on phase
+      dealBtn.disabled = (phase !== 'IDLE' && phase !== 'SETTLED');
+      hitBtn.disabled = (phase !== 'PLAYER_TURN');
+      standBtn.disabled = (phase !== 'PLAYER_TURN');
     }
 
     function startRound() {
-      if (inRound || bet <= 0) return;
-      if (bankroll < bet) return;
+      if (phase !== 'IDLE' && phase !== 'SETTLED') return;
 
-      bankroll -= bet;
-      payout = 0;
-
+      // Create and shuffle new deck
       deck = newDeck();
-      player = [deck.pop(), deck.pop()];
-      dealer = [deck.pop(), deck.pop()];
-      dealerHidden = true;
-      inRound = true;
+      player = [];
+      dealer = [];
       clearBadges();
 
-      const p = score(player);
-      if (p === 21) {
-        // natural blackjack
-        dealerHidden = false;
-        settle(true);
-        return;
+      // Deal initial cards (1 each as per spec)
+      for (let i = 0; i < INITIAL_CARDS; i++) {
+        player.push(deck.pop());
+        dealer.push(deck.pop());
       }
 
-      setStatus('已發牌', '輪到你了：要牌（H）或停牌（S）。', '');
+      phase = 'PLAYER_TURN';
+      setStatus('玩家回合', '要牌（Hit）或停牌（Stand）？', '');
       syncUI();
     }
 
     function hit() {
-      if (!inRound) return;
+      if (phase !== 'PLAYER_TURN') return;
+      
+      // Check if deck is empty
+      if (deck.length === 0) {
+        setStatus('牌庫重建', '牌庫不足，已重新建立並洗牌。', 'warn');
+        deck = newDeck();
+      }
+      
       player.push(deck.pop());
-      const p = score(player);
-      if (p > 21) {
-        dealerHidden = false;
-        badge(playerBadgesEl, '爆牌', 'bad');
-        settle(false, true);
-        return;
-      }
-      if (p === 21) {
-        stand();
-        return;
-      }
-      setStatus('要牌', '你選擇要牌。可繼續要牌或停牌。', '');
       syncUI();
+      
+      const p = score(player);
+      if (isBust(player)) {
+        badge(playerBadgesEl, '爆牌', 'bad');
+        setStatus('玩家爆牌', `點數 ${p.toFixed(1)} 超過 ${TARGET}`, 'bad');
+        settle();
+        return;
+      }
+      
+      setStatus('玩家回合', `目前點數：${p.toFixed(1)}。繼續要牌或停牌？`, '');
     }
 
     function stand() {
-      if (!inRound) return;
-      dealerHidden = false;
+      if (phase !== 'PLAYER_TURN') return;
+      
+      phase = 'DEALER_TURN';
+      setStatus('莊家回合', '莊家自動補牌中...', '');
+      syncUI();
 
-      // dealer draws to 17+
-      while (score(dealer) < 17) dealer.push(deck.pop());
-
-      settle(false);
+      // Dealer draws until >= DEALER_STAND_AT or bust
+      setTimeout(() => {
+        while (score(dealer) < DEALER_STAND_AT && !isBust(dealer)) {
+          // Check if deck is empty
+          if (deck.length === 0) {
+            deck = newDeck();
+          }
+          dealer.push(deck.pop());
+        }
+        
+        if (isBust(dealer)) {
+          badge(dealerBadgesEl, '爆牌', 'bad');
+        }
+        
+        syncUI();
+        settle();
+      }, 500);
     }
 
-    function settle(natural = false, playerBust = false) {
+    function settle() {
       const p = score(player);
       const d = score(dealer);
+      const pBust = isBust(player);
+      const dBust = isBust(dealer);
 
-      inRound = false;
+      phase = 'SETTLED';
 
       let title = '';
       let msg = '';
       let cls = '';
 
-      if (playerBust) {
-        title = '你爆牌了';
-        msg = '本局你輸了。';
+      // Settlement rules as per spec
+      if (pBust) {
+        title = '玩家輸';
+        msg = `玩家爆牌（${p.toFixed(1)} > ${TARGET}），莊家勝。`;
         cls = 'bad';
-        payout = 0;
-      } else if (natural && p === 21) {
-        // blackjack pays 3:2
-        if (d === 21) {
-          title = '平手';
-          msg = '雙方皆為 21 點，退回下注金額。';
-          cls = 'warn';
-          payout = bet;
-        } else {
-          title = 'Blackjack！';
-          msg = '你以天生 21 點獲勝（3:2）。';
-          cls = 'good';
-          payout = Math.floor(bet * 2.5);
-        }
+      } else if (dBust) {
+        title = '玩家勝';
+        msg = `莊家爆牌（${d.toFixed(1)} > ${TARGET}），玩家勝。`;
+        cls = 'good';
       } else {
-        if (d > 21) {
-          title = '莊家爆牌';
-          msg = '你贏了！';
+        if (p > d) {
+          title = '玩家勝';
+          msg = `玩家點數更高（${p.toFixed(1)} vs ${d.toFixed(1)}）。`;
           cls = 'good';
-          payout = bet * 2;
-        } else if (p > d) {
-          title = '你贏了';
-          msg = '恭喜！你的點數更高。';
-          cls = 'good';
-          payout = bet * 2;
         } else if (p < d) {
-          title = '你輸了';
-          msg = '莊家點數更高。';
+          title = '玩家輸';
+          msg = `莊家點數更高（${p.toFixed(1)} vs ${d.toFixed(1)}）。`;
           cls = 'bad';
-          payout = 0;
         } else {
-          title = '平手';
-          msg = '點數相同，退回下注金額。';
+          title = '和局（PUSH）';
+          msg = `雙方點數相同（${p.toFixed(1)}）。`;
           cls = 'warn';
-          payout = bet;
         }
       }
 
-      bankroll += payout;
+      // Add badges for special conditions
+      if (p === TARGET) badge(playerBadgesEl, '10.5', 'good');
+      if (d === TARGET) badge(dealerBadgesEl, '10.5', 'good');
 
-      if (p === 21) badge(playerBadgesEl, '21', 'good');
-      if (d === 21) badge(dealerBadgesEl, '21', 'good');
-      if (d > 21) badge(dealerBadgesEl, '爆牌', 'bad');
-
-      setStatus(title, msg + ' 請重新下注開始下一局。', cls);
-
-      // reset bet automatically for clarity? keep existing behavior: bet stays until cleared by user
-      bet = 0;
+      setStatus(title, msg + ' 點擊「新局」開始下一局。', cls);
       syncUI();
     }
 
-    function resetGame() {
-      bankroll = 500;
-      bet = 0;
-      payout = 0;
-      deck = [];
-      player = [];
-      dealer = [];
-      inRound = false;
-      dealerHidden = true;
-      clearBadges();
-      setStatus('已重置', '資金已恢復為預設值。請先下注再發牌。', '');
-      syncUI();
-    }
-
-    // chips
-    document.querySelectorAll('.chip').forEach(chip => {
-      chip.addEventListener('click', () => addBet(Number(chip.dataset.amt)));
-      chip.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          addBet(Number(chip.dataset.amt));
-        }
-      });
-    });
-
-    // buttons
+    // Button event listeners
     dealBtn.addEventListener('click', startRound);
     hitBtn.addEventListener('click', hit);
     standBtn.addEventListener('click', stand);
-    clearBetBtn.addEventListener('click', clearBet);
-    resetBtn.addEventListener('click', resetGame);
 
-    // keyboard shortcuts
+    // Keyboard shortcuts
     window.addEventListener('keydown', (e) => {
       const key = e.key.toLowerCase();
       if (key === 'enter') {
-        if (!inRound) startRound();
+        if (phase === 'IDLE' || phase === 'SETTLED') startRound();
       } else if (key === 'h') {
         hit();
       } else if (key === 's') {
         stand();
-      } else if (key === 'c') {
-        clearBet();
       }
     });
 
-    // init
-    setStatus('準備下注', '選擇籌碼來下注，然後按「發牌」。', '');
-    // initial empty hands
+    // Initialize
+    setStatus('準備開始', '點擊「新局」開始遊戲。', '');
     player = [];
     dealer = [];
     syncUI();
