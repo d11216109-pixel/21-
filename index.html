@@ -511,10 +511,10 @@
       renderHand(dealerCardsEl, dealer, dealerHidden);
 
       const pScore = score(player);
-      const dScore = dealerHidden ? cardValue(dealer[1]) : score(dealer);
+      const dScore = dealerHidden && dealer.length > 1 ? cardValue(dealer[1]) : score(dealer);
 
       playerScoreEl.textContent = `點數：${pScore % 1 === 0 ? pScore : pScore.toFixed(1)}`;
-      dealerScoreEl.textContent = `點數：${dScore % 1 === 0 ? dScore : dScore.toFixed(1)}` + (dealerHidden ? '（明牌）' : '');
+      dealerScoreEl.textContent = `點數：${dScore % 1 === 0 ? dScore : dScore.toFixed(1)}` + (dealerHidden && dealer.length > 1 ? '（明牌）' : '');
 
       dealBtn.disabled = inRound || bet <= 0;
       hitBtn.disabled = !inRound;
